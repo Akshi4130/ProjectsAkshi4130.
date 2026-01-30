@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phishing Website Detection System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 25px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.07);
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 0 40px rgba(6,182,212,0.15);
+      transition: 0.4s ease;
+    }
+    .container:hover { 
+      box-shadow: 0 0 50px rgba(6,182,212,0.25); 
+    }
+    .header {
+      background: linear-gradient(90deg,#06b6d4,#3b82f6); 
+      padding: 30px; text-align: center; 
+    }
+    .header h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg,#22d3ee,#3b82f6,#6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: hueShift 5s infinite linear;
+    }
+    @keyframes hueShift 
+    { 
+        0% 
+        { 
+            filter: hue-rotate(0deg); 
+        } 
+        100% 
+        { 
+            filter: hue-rotate(360deg);
+        } 
+    }
+    .header p {
+      font-size: 1.1rem;
+      color: #cbd5e1;
+      opacity: 0.9; 
+    }
+    .analyzer-section {
+        padding: 40px; 
+    }
+    .input-group label {
+        display:block;
+        font-weight:600;
+        margin-bottom:10px;
+        color:#38bdf8; 
+    }
+    .url-input {
+      width:100%;
+      padding:15px;
+      border:2px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.05);
+      border-radius:10px;
+      color:#f8fafc;
+      font-size:1rem;
+      transition:0.3s;
+    }
+    .url-input:focus {
+        border-color:#38bdf8;
+        box-shadow:0 0 10px rgba(56,189,248,0.4);
+        outline:none; 
+    }
+    .analysis-button {
+      width:100%;
+      padding:15px 30px;
+      font-size:1.1rem;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      background:linear-gradient(90deg,#06b6d4,#3b82f6);
+      color:white;
+      box-shadow:0 0 20px rgba(6,182,212,0.3);
+      transition:0.3s ease;
+      margin-top:10px;
+    }
+    .analysis-button:hover {
+      transform:scale(1.05);
+      box-shadow:0 0 25px rgba(59,130,246,0.4); 
+    }
+    .result {
+      margin-top:30px;
+      padding:25px;
+      border-radius:15px;
+      display:none; 
+    }
+    .result.safe {
+      background: rgba(22,163,74,0.3);
+      border:1px solid #16a34a; 
+    }
+    .result.suspicious {
+      background: rgba(250,204,21,0.25);
+      border:1px solid #facc15; 
+    }
+    .result.dangerous {
+      background: rgba(239,68,68,0.3); 
+      border:1px solid #ef4444; 
+    }
+    .result h3 {
+      font-size:1.5rem; 
+      margin-bottom:15px; 
+      display:flex; 
+      gap:10px; 
+      align-items:center; 
+        
+    }
+    .score {
+      font-size:1.3rem; 
+      font-weight:bold; 
+      margin-bottom:15px; 
+    }
+    .details ul {
+      list-style:none; 
+      padding-left:0; }
+    .detail-item {
+      background:rgba(255,255,255,0.08); 
+      padding:10px 15px; 
+      margin:8px 0; 
+      border-radius:8px; 
+      transition:0.3s; 
+    }
+    .detail-item.warning:hover {
+        background: rgba(239,68,68,0.25);
+    }
+    .detail-item.good:hover {
+        background: rgba(16,185,129,0.25); 
+    }
+    .history {
+        margin-top:40px; 
+        border-top:1px solid rgba(255,255,255,0.1); 
+        padding-top:25px;
+    }
+    .history h3 {
+        color:#38bdf8; 
+        margin-bottom:15px; 
+    }
+    .history-item {
+        background: rgba(255,255,255,0.05); 
+        padding:15px; 
+        border-radius:10px; 
+        margin:10px 0; 
+        transition:0.3s; 
+    }
+    .history-item:hover {
+        background: rgba(255,255,255,0.1);
+        transform: translateY(-3px); 
+    }
+    .history-url {
+        font-weight:600; 
+        color:#e2e8f0; 
+    }
+    .history-status {
+        font-size:0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Phishing Website Detection System</h2>
+      <p>Analyze URLs to check safety, suspicious activity, or danger.</p>
+    </div>
+
+    <div class="analyzer-section">
+      <div class="input-group">
+        <label for="urlInput">Enter Website URL:</label>
+        <input type="text" id="urlInput" class="url-input" placeholder="e.g. https://example.com" />
+      </div>
+
+      <button id="analyzeBtn" class="analysis-button">Analyze Website</button>
+
+      <div id="resultBox" class="result" aria-live="polite"></div>
+
+      <div class="history">
+        <h3>Recent Checks</h3>
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+   (async function () {
+  let dataset = [];
+
+  
+  async function loadDataset() {
+    try {
+      const res = await fetch('out.txt', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch dataset');
+      const text = await res.text();
+      dataset = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      console.log('Dataset loaded. Entries:', dataset.length);
+    } catch (err) {
+      console.warn('Could not load dataset (out.txt).', err);
+      dataset = [];
+    }
+  }
+
+  await loadDataset();
+
+  const historyList = [];
+
+  function analyzeURL() {
+    const urlInput = document.getElementById('urlInput');
+    const historyDiv = document.getElementById('historyList');
+    const raw = (urlInput.value || '').trim();
+    if (!raw) { alert('Please enter a URL!'); return; }
+
+    const normalized = normalizeUrl(raw);
+    const found = dataset.some(d => normalizeUrl(d) === normalized);
+
+    let score = 0;
+    const details = [];
+
+    if (found) 
+    { 
+        details.push({ text: 'This URL exists in the trusted dataset.', type: 'good' });
+    }
+
+    if (raw.length > 60) 
+    {
+      score += 2;
+      details.push({ text: 'URL length is unusually long', type: 'warning' });
+    } 
+    else 
+    {
+      details.push({ text: 'URL length looks normal', type: 'good' });
+    }
+
+    if (raw.includes('@') || raw.includes('-')) 
+    {
+      score += 2;
+      details.push({ text: "Suspicious characters '@' or '-' found", type: 'warning' });
+    } 
+    else 
+    {
+      details.push({ text: 'No suspicious characters detected', type: 'good' });
+    }
+
+    if (raw.startsWith('https://')) 
+    {
+      details.push({ text: 'HTTPS detected (secure connection)', type: 'good' });
+    } 
+    else 
+    {
+      score += 2;
+      details.push({ text: 'Website does not use HTTPS', type: 'warning' });
+    }
+
+    if ((raw.match(/\./g) || []).length > 3) 
+    {
+      score += 2;
+      details.push({ text: 'Too many subdomains found', type: 'warning' });
+    } 
+    else 
+    {
+      details.push({ text: 'Subdomain count looks normal', type: 'good' });
+    }
+
+    const status = score <= 2 ? 'safe' : score <= 4 ? 'suspicious' : 'dangerous';
+
+    showResult(status, score, details);
+    pushHistory(raw, status);
+    renderHistory(historyDiv);
+  }
+
+  function normalizeUrl(u) {
+    try {
+      let temp = u;
+      if (!/^https?:\/\//i.test(temp)) temp = 'http://' + temp;
+      const urlObj = new URL(temp);
+      return (urlObj.hostname + urlObj.pathname).replace(/\/$/, '').toLowerCase();
+    } catch (e) { return u.toLowerCase(); }
+  }
+
+  function showResult(status, score, details) {
+    const resultBox = document.getElementById('resultBox');
+    resultBox.className = 'result ' + status;
+    resultBox.style.display = 'block';
+    let html = `<h3>🔍 Result: ${status.toUpperCase()}</h3>`;
+    html += `<p class="score">Risk Score: ${score}/6</p><div class="details"><ul>`;
+    details.forEach(d => {
+      const icon = d.type === 'good' ? '✅' : '⚠️';
+      html += `<li class="detail-item ${d.type}">${icon} ${escapeHtml(d.text)}</li>`;
+    });
+    html += '</ul></div>';
+    resultBox.innerHTML = html;
+  }
+
+  function pushHistory(url, status) {
+    historyList.unshift({ url, status });
+    if (historyList.length > 5) historyList.pop();
+  }
+
+  function renderHistory(container) {
+    container.innerHTML = historyList.map(item => `
+      <div class="history-item">
+        <div class="history-url">${escapeHtml(item.url)}</div>
+        <div class="history-status">
+            Status: 
+            <strong>
+                ${item.status.toUpperCase()}
+            </strong>
+        </div>
+      </div>`).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  document.getElementById('analyzeBtn').addEventListener('click', analyzeURL);
+})();
+  </script>
+</body>
+</html>
